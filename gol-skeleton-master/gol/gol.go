@@ -41,18 +41,6 @@ func calculateNextState(p Params, world [][]byte) [][]byte {
 	return worldUpdate
 }
 
-func calculateAliveCells(p Params, world [][]byte) []cell {
-	var liveCells []cell
-	for y := 0; y < p.ImageHeight; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			if world[y][x] == 255 {
-				liveCells = append(liveCells, cell{x: x, y: y})
-			}
-		}
-	}
-	return liveCells
-}
-
 // Run starts the processing of Game of Life. It should initialise channels and goroutines.
 func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 
