@@ -8,7 +8,7 @@ type Params struct {
 	ImageHeight int
 }
 
-func calculateNextState(p Params, world [][]byte) [][]byte {
+func calcNextState(p Params, world [][]byte) [][]byte {
 	worldUpdate := make([][]byte, p.ImageHeight)
 	for i := range worldUpdate {
 		worldUpdate[i] = make([]byte, p.ImageWidth)
