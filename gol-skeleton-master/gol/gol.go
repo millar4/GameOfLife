@@ -8,39 +8,6 @@ type Params struct {
 	ImageHeight int
 }
 
-func calcNextState(p Params, world [][]byte) [][]byte {
-	worldUpdate := make([][]byte, p.ImageHeight)
-	for i := range worldUpdate {
-		worldUpdate[i] = make([]byte, p.ImageWidth)
-	}
-
-	for y := 0; y < p.ImageHeight; y++ {
-		for x := 0; x < p.ImageWidth; x++ {
-			sum := int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth])/255 + int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth])/255 + int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth])/255 +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth])/255 + int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth])/255 +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth])/255 + int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth])/255 + int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth])/255
-			//fmt.Println(world)
-			if world[y][x] == 255 {
-				if sum < 2 {
-					worldUpdate[y][x] = 0
-				} else if sum == 2 || sum == 3 {
-					worldUpdate[y][x] = 255
-				} else {
-					worldUpdate[y][x] = 0
-				}
-			} else {
-				if sum == 3 {
-					worldUpdate[y][x] = 255
-				} else {
-					worldUpdate[y][x] = 0
-				}
-			}
-		}
-	}
-	//fmt.Println(worldUpdate)
-	return worldUpdate
-}
-
 // Run starts the processing of Game of Life. It should initialise channels and goroutines.
 func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 
@@ -48,13 +15,16 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 
 	ioCommand := make(chan ioCommand)
 	ioIdle := make(chan bool)
+	ioFilename := make(chan string)
+	ioOutput := make(chan uint8)
+	ioInput := make(chan uint8)
 
 	ioChannels := ioChannels{
 		command:  ioCommand,
 		idle:     ioIdle,
-		filename: nil,
-		output:   nil,
-		input:    nil,
+		filename: ioFilename,
+		output:   ioOutput,
+		input:    ioInput,
 	}
 	go startIo(p, ioChannels)
 
@@ -62,9 +32,9 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 		events:     events,
 		ioCommand:  ioCommand,
 		ioIdle:     ioIdle,
-		ioFilename: nil,
-		ioOutput:   nil,
-		ioInput:    nil,
+		ioFilename: ioFilename,
+		ioOutput:   ioOutput,
+		ioInput:    ioInput,
 	}
 	distributor(p, distributorChannels)
 }
