@@ -46,7 +46,27 @@ func calcNextState(p Params, world [][]byte) [][]byte {
 func distributor(p Params, c distributorChannels) {
 
 	// TODO: Create a 2D slice to store the world.
-	//initialWorld := readPgmImage(params, inputFilename)
+
+	var receivedData []uint8
+	imageFilename := "16x16"
+	outputArrayFile := "out/" + imageFilename + ".pgm"
+
+	go func() {
+		c.ioCommand <- 1
+		c.ioFilename <- imageFilename
+		for {
+			input := <-c.ioInput
+			receivedData = append(receivedData, input)
+		}
+	}()
+
+	go func() {
+		c.ioCommand <- 0
+		for i := range receivedData {
+			c.ioOutput <- receivedData[i]
+		}
+	}()
+
 	turn := 0
 	c.events <- StateChange{turn, Executing}
 
