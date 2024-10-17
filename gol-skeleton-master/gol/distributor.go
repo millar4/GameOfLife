@@ -61,23 +61,22 @@ func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
-
+	c.ioCommand <- 1
 	// TODO: Create a 2D slice to store the world.
 
-	var receivedData []uint8
+	//var receivedData []uint8
 	//input := make(chan int)
-	imageFilename := "16x16"
 
 	var world [][]uint8
 	//var worldUpdate [][]uint8
-	go func() {
-		c.ioCommand <- 1
-		c.ioFilename <- imageFilename
-	}()
 
-	for input := range c.ioInput {
+	c.ioFilename <- fmt.Sprint(p.ImageWidth, "x", p.ImageHeight)
+
+	/*for input := range c.ioInput {
+		fmt.Println("Hello")
 		receivedData = append(receivedData, input)
 	}
+	fmt.Println("here")*/
 
 	turn := 0
 
@@ -90,7 +89,7 @@ func distributor(p Params, c distributorChannels) {
 
 	for y := 0; y < p.ImageHeight; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
-			world[y][x] = receivedData[y*p.ImageWidth+x]
+			world[y][x] = <-c.ioInput
 		}
 	}
 	// TODO: Execute all turns of the Game of Life.
