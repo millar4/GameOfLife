@@ -1,5 +1,11 @@
 package gol
 
+import (
+	"fmt"
+
+	"uk.ac.bris.cs/gameoflife/util"
+)
+
 type distributorChannels struct {
 	events     chan<- Event
 	ioCommand  chan<- ioCommand
@@ -38,8 +44,19 @@ func calcNextState(p Params, world [][]byte) [][]byte {
 			}
 		}
 	}
-	//fmt.Println(worldUpdate)
 	return worldUpdate
+}
+
+func calculateAliveCells(p Params, world [][]byte) []util.Cell {
+	var liveCells []util.Cell
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			if world[y][x] == 255 {
+				liveCells = append(liveCells, util.Cell{X: x, Y: y})
+			}
+		}
+	}
+	return liveCells
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
@@ -48,41 +65,47 @@ func distributor(p Params, c distributorChannels) {
 	// TODO: Create a 2D slice to store the world.
 
 	var receivedData []uint8
+	//input := make(chan int)
 	imageFilename := "16x16"
-	outputArrayFile := "out/" + imageFilename + ".pgm"
 
+	var world [][]uint8
+	//var worldUpdate [][]uint8
 	go func() {
 		c.ioCommand <- 1
 		c.ioFilename <- imageFilename
-		for {
-			input := <-c.ioInput
-			receivedData = append(receivedData, input)
-		}
 	}()
 
-	go func() {
-		c.ioCommand <- 0
-		for i := range receivedData {
-			c.ioOutput <- receivedData[i]
-		}
-	}()
-
-	turn := 0
-	c.events <- StateChange{turn, Executing}
-
-	// TODO: Execute all turns of the Game of Life.
-	for i := 0; i < p.Turns; i++ {
-		calcNextState(p)
+	for input := range c.ioInput {
+		receivedData = append(receivedData, input)
 	}
 
-	// TODO: Report the final state using FinalTurnCompleteEvent.
+	turn := 0
 
+	c.events <- StateChange{turn, Executing}
+
+	world = make([][]byte, p.ImageHeight)
+	for i := range world {
+		world[i] = make([]byte, p.ImageWidth)
+	}
+
+	for y := 0; y < p.ImageHeight; y++ {
+		for x := 0; x < p.ImageWidth; x++ {
+			world[y][x] = receivedData[y*p.ImageWidth+x]
+		}
+	}
+	// TODO: Execute all turns of the Game of Life.
+	for i := 0; i < p.Turns; i++ {
+		world = calcNextState(p, world)
+	}
+
+	finalState := calculateAliveCells(p, world)
+	fmt.Println(finalState)
+	// TODO: Report the final state using FinalTurnCompleteEvent.
+	c.events <- FinalTurnComplete{p.Turns, finalState}
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
 	<-c.ioIdle
-
 	c.events <- StateChange{turn, Quitting}
-
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
 }
