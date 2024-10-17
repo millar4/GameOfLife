@@ -95,12 +95,13 @@ func distributor(p Params, c distributorChannels) {
 	// TODO: Execute all turns of the Game of Life.
 	for i := 0; i < p.Turns; i++ {
 		world = calcNextState(p, world)
+		turn++
 	}
 
 	finalState := calculateAliveCells(p, world)
-	fmt.Println(finalState)
+	//fmt.Println(finalState)
 	// TODO: Report the final state using FinalTurnCompleteEvent.
-	c.events <- FinalTurnComplete{p.Turns, finalState}
+	c.events <- FinalTurnComplete{turn, finalState}
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
 	<-c.ioIdle
